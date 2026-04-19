@@ -1,4 +1,6 @@
 "use client";
+// MapLibre CSS must be imported via JS (CSS @import can't resolve node_modules).
+import "maplibre-gl/dist/maplibre-gl.css";
 import { renderWidget } from "./widgets/registry";
 import type { Manifest } from "@cockpit/schema";
 import { useEffect, useState } from "react";
