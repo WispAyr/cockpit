@@ -148,26 +148,58 @@ async function fetchSiphon(sourceId: string): Promise<any> {
 
 /* ----------------------------- local sensors ----------------------------- */
 
+// Davis rain tipper bucket size codes → mm/count.
+const RAIN_BUCKET_MM: Record<number, number> = { 1: 0.254, 2: 0.2, 3: 0.1, 4: 0.0254 };
+
 async function readWeather(): Promise<any> {
   const base = process.env.WLL_URL;
   if (!base) return { error: "wll_not_configured" };
   try {
     const data = await fetchJson(`${base}/v1/current_conditions`, 1200);
-    // WLL payload: data.data.conditions[] — first element is ISS roof block.
     const conditions = data?.data?.conditions ?? [];
-    const iss = conditions.find((c: any) => c.data_structure_type === 1) ?? conditions[0];
-    if (!iss) return { error: "wll_empty" };
-    // Davis reports temp_out in °F, wind_speed in mph — convert to °C / km/h.
-    const fToC = (f: number | null) => (typeof f === "number" ? Math.round((f - 32) * 5 / 9 * 10) / 10 : null);
-    const mphToKph = (m: number | null) => (typeof m === "number" ? Math.round(m * 1.609344 * 10) / 10 : null);
+    // Davis WLL publishes up to 4 block types per payload. We want 1 (outdoor
+    // ISS), 3 (LL baro), 4 (LL indoor / cabin).
+    const iss = conditions.find((c: any) => c.data_structure_type === 1);
+    const cabin = conditions.find((c: any) => c.data_structure_type === 4);
+    const baro = conditions.find((c: any) => c.data_structure_type === 3);
+    if (!iss && !cabin && !baro) return { error: "wll_empty" };
+
+    const fToC = (f: any) => (typeof f === "number" ? Math.round((f - 32) * 5 / 9 * 10) / 10 : null);
+    const mphToKph = (m: any) => (typeof m === "number" ? Math.round(m * 1.609344 * 10) / 10 : null);
+    const inHgToHpa = (v: any) => (typeof v === "number" ? Math.round(v * 33.8639 * 10) / 10 : null);
+    const bucketMm = iss ? (RAIN_BUCKET_MM[iss.rain_size as number] ?? 0.254) : 0.254;
+    const rainCountsToMm = (c: any) => (typeof c === "number" ? Math.round(c * bucketMm * 100) / 100 : null);
+
     return {
-      tempC: fToC(iss.temp ?? iss.temp_out ?? null),
-      humidityPct: iss.hum ?? iss.hum_out ?? null,
-      windKph: mphToKph(iss.wind_speed_last ?? iss.wind_speed_avg_last_1_min ?? null),
-      windDirDeg: iss.wind_dir_last ?? iss.wind_dir_at_hi_speed_last_10_min ?? null,
-      rainRateMm: iss.rain_rate_last_mm ?? null,
-      solarWm2: iss.solar_rad ?? null,
-      uv: iss.uv_index ?? null,
+      // outdoor
+      tempC: fToC(iss?.temp),
+      humidityPct: iss?.hum ?? null,
+      dewC: fToC(iss?.dew_point),
+      wetBulbC: fToC(iss?.wet_bulb),
+      heatIndexC: fToC(iss?.heat_index),
+      windChillC: fToC(iss?.wind_chill),
+      windKph: mphToKph(iss?.wind_speed_last ?? iss?.wind_speed_avg_last_1_min),
+      windDirDeg: iss?.wind_dir_last ?? iss?.wind_dir_scalar_avg_last_1_min ?? null,
+      windGustKph: mphToKph(iss?.wind_speed_hi_last_10_min ?? iss?.wind_speed_hi_last_2_min),
+      windAvg10mKph: mphToKph(iss?.wind_speed_avg_last_10_min),
+      rainRateMmHr: rainCountsToMm(iss?.rain_rate_last),
+      rain24hMm: rainCountsToMm(iss?.rainfall_last_24_hr),
+      rainDayMm: rainCountsToMm(iss?.rainfall_daily),
+      rainStormMm: rainCountsToMm(iss?.rain_storm),
+      solarWm2: iss?.solar_rad ?? null,
+      uv: iss?.uv_index ?? null,
+      // cabin (WLL indoor)
+      cabinTempC: fToC(cabin?.temp_in),
+      cabinHumPct: cabin?.hum_in ?? null,
+      cabinDewC: fToC(cabin?.dew_point_in),
+      // barometer
+      baroHpa: inHgToHpa(baro?.bar_sea_level),
+      baroAbsHpa: inHgToHpa(baro?.bar_absolute),
+      baroTrend: baro?.bar_trend ?? null,
+      // link / health
+      rxState: iss?.rx_state ?? null,      // 0=synced, 1=rescan, 2=lost
+      batteryOk: iss?.trans_battery_flag === 0,
+      tsEpoch: data?.data?.ts ?? null,
     };
   } catch (e: any) {
     return { error: "wll_unreachable", detail: e?.message ?? String(e) };

@@ -104,10 +104,47 @@ const Gps = ({ w }: { w: WidgetInstance }) => {
 
 const Weather = ({ w }: { w: WidgetInstance }) => {
   const d = useBindingData(w.bind);
+  // Which cells to show is configurable so the tile can live at 2-cell
+  // (header strip) or 6-cell (full outlook) sizes without a separate widget.
+  const fields = ((w.props as any)?.fields as string[] | undefined) ?? ["temp", "hum", "wind"];
+  const fmt = (v: any) => (v === null || v === undefined ? "—" : v);
+  const map: Record<string, { label: string; value: any; unit: string }> = {
+    temp:    { label: "TEMP",  value: fmt(d?.tempC),        unit: "°C" },
+    hum:     { label: "HUM",   value: fmt(d?.humidityPct),  unit: "%" },
+    dew:     { label: "DEW",   value: fmt(d?.dewC),         unit: "°C" },
+    wind:    { label: "WIND",  value: fmt(d?.windKph),      unit: "km/h" },
+    gust:    { label: "GUST",  value: fmt(d?.windGustKph),  unit: "km/h" },
+    baro:    { label: "BARO",  value: fmt(d?.baroHpa),      unit: "hPa" },
+    rain:    { label: "RAIN",  value: fmt(d?.rainRateMmHr), unit: "mm/h" },
+    rain24h: { label: "24H",   value: fmt(d?.rain24hMm),    unit: "mm" },
+    solar:   { label: "SOLAR", value: fmt(d?.solarWm2),     unit: "W/m²" },
+    uv:      { label: "UV",    value: fmt(d?.uv),           unit: "" },
+  };
+  const cells = fields.map((k) => map[k]).filter(Boolean);
+  return (
+    <Tile w={w}>
+      <div className="flex items-stretch justify-between w-full h-full gap-2">
+        {cells.map((c, i) => (
+          <div key={c.label} className="flex-1 flex flex-col items-center justify-center min-w-0"
+               style={i < cells.length - 1 ? { borderRight: "1px solid rgba(255,255,255,0.05)" } : undefined}>
+            <div className="text-[9px] uppercase tracking-[0.2em] opacity-50">{c.label}</div>
+            <div className="text-xl font-semibold tabular-nums mt-0.5 truncate">
+              {c.value}{c.unit && <span className="text-[11px] opacity-60 ml-0.5">{c.unit}</span>}
+            </div>
+          </div>
+        ))}
+      </div>
+    </Tile>
+  );
+};
+
+// Cabin/indoor conditions from the WLL indoor transmitter.
+const Cabin = ({ w }: { w: WidgetInstance }) => {
+  const d = useBindingData(w.bind);
   const cells = [
-    { label: "TEMP", value: d?.tempC ?? "—", unit: "°C" },
-    { label: "HUM", value: d?.humidityPct ?? "—", unit: "%" },
-    { label: "WIND", value: d?.windKph ?? "—", unit: "km/h" },
+    { label: "CABIN",   value: d?.cabinTempC ?? "—", unit: "°C" },
+    { label: "RH",      value: d?.cabinHumPct ?? "—", unit: "%" },
+    { label: "DEW",     value: d?.cabinDewC ?? "—", unit: "°C" },
   ];
   return (
     <Tile w={w}>
@@ -121,6 +158,53 @@ const Weather = ({ w }: { w: WidgetInstance }) => {
             </div>
           </div>
         ))}
+      </div>
+    </Tile>
+  );
+};
+
+// Barometric pressure + trend. Trend is -60..+60 (2-h change, hPa-hundredths
+// on Davis firmware) — we colour up/down and show the magnitude when present.
+const Baro = ({ w }: { w: WidgetInstance }) => {
+  const d = useBindingData(w.bind);
+  const hpa = typeof d?.baroHpa === "number" ? d.baroHpa : null;
+  const trend = typeof d?.baroTrend === "number" ? d.baroTrend : null;
+  const trendLabel = trend === null ? "—" : trend > 0 ? "RISING" : trend < 0 ? "FALLING" : "STEADY";
+  const trendColor = trend === null ? "rgba(255,255,255,0.5)" : trend > 0 ? "#2bd46d" : trend < 0 ? "#ff5a3a" : "#7cc3ff";
+  return (
+    <Tile w={w}>
+      <div className="flex flex-col items-center justify-center h-full w-full">
+        <div className="text-[9px] uppercase tracking-[0.3em] opacity-45">Barometer</div>
+        <div className="text-4xl font-semibold tabular-nums mt-1 leading-none" style={{ color: "#e7ecf3" }}>
+          {hpa ?? "—"}<span className="text-sm opacity-55 ml-1">hPa</span>
+        </div>
+        <div className="hud-chip mt-2" style={{ color: trendColor, borderColor: `${trendColor}40` }}>{trendLabel}</div>
+      </div>
+    </Tile>
+  );
+};
+
+// Weather-station link health (rx_state + battery).
+const WllLink = ({ w }: { w: WidgetInstance }) => {
+  const d = useBindingData(w.bind);
+  const rx = d?.rxState as number | null | undefined;
+  const batt = d?.batteryOk as boolean | undefined;
+  const state = rx === 0 ? "SYNCED" : rx === 1 ? "RESCAN" : rx === 2 ? "LOST" : "—";
+  const color = rx === 0 ? "#2bd46d" : rx === 1 ? "#ffae00" : rx === 2 ? "#ff5a3a" : "rgba(255,255,255,.4)";
+  return (
+    <Tile w={w}>
+      <div className="flex items-center justify-between h-full w-full gap-3">
+        <div className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full" style={{ background: color, boxShadow: `0 0 8px ${color}AA` }} />
+          <div>
+            <div className="text-[9px] uppercase tracking-[0.2em] opacity-55 leading-none">ISS Link</div>
+            <div className="text-base font-semibold tabular-nums leading-tight mt-0.5" style={{ color }}>{state}</div>
+          </div>
+        </div>
+        <div className="flex flex-col items-end">
+          <div className="text-[9px] uppercase tracking-[0.2em] opacity-55">Batt</div>
+          <div className="text-[11px] font-semibold" style={{ color: batt === false ? "#ff5a3a" : "#2bd46d" }}>{batt === undefined ? "—" : batt ? "OK" : "LOW"}</div>
+        </div>
       </div>
     </Tile>
   );
@@ -255,16 +339,27 @@ const MapTile = ({ w }: { w: WidgetInstance }) => {
   useEffect(() => {
     let cancelled = false;
     let ro: ResizeObserver | null = null;
+    let tilesFetched = 0;
+    let tilesOk = 0;
+    let tilesErr = 0;
     (async () => {
       if (!containerRef.current) return;
+      // Probe WebGL before importing maplibre. Some firefox kiosk profiles
+      // disable WebGL — maplibre silently initialises as a black canvas.
       try {
-        setDebug("importing maplibre");
+        const probe = document.createElement("canvas");
+        const gl = (probe.getContext("webgl2") || probe.getContext("webgl")) as any;
+        if (!gl) { setDebug("no webgl"); return; }
+      } catch { setDebug("webgl blocked"); return; }
+
+      try {
+        setDebug("importing");
         const maplibre = await import("maplibre-gl");
         if (cancelled || mapRef.current) return;
         maplibreRef.current = maplibre;
-        setDebug(`container ${containerRef.current.clientWidth}x${containerRef.current.clientHeight}`);
+        const el = containerRef.current!;
         const map = new maplibre.Map({
-          container: containerRef.current,
+          container: el,
           style: darkRasterStyle(),
           center: [-4.629, 55.458],
           zoom: 7,
@@ -275,10 +370,27 @@ const MapTile = ({ w }: { w: WidgetInstance }) => {
           const msg = e?.error?.message ?? e?.message ?? "unknown";
           setDebug("err: " + String(msg).slice(0, 80));
         });
-        map.on("load", () => setDebug("loaded"));
-        map.on("sourcedata", (e: any) => { if (e.isSourceLoaded) setDebug("ok"); });
+        map.on("load", () => setDebug(`loaded ${el.clientWidth}x${el.clientHeight}`));
+        map.on("dataloading", (e: any) => {
+          if (e.dataType === "source" && e.tile) {
+            tilesFetched++;
+            setDebug(`req ${tilesFetched} ok ${tilesOk} err ${tilesErr}`);
+          }
+        });
+        map.on("data", (e: any) => {
+          if (e.dataType === "source" && e.tile) {
+            tilesOk++;
+            setDebug(`req ${tilesFetched} ok ${tilesOk} err ${tilesErr}`);
+          }
+        });
+        // Count tile request failures separately so silence vs. network-fail
+        // vs. WebGL-fail are distinguishable.
+        const origErr = map.on.bind(map);
+        origErr("error", (e: any) => {
+          if (e?.tile) tilesErr++;
+        });
         ro = new ResizeObserver(() => { try { map.resize(); } catch {} });
-        if (containerRef.current) ro.observe(containerRef.current);
+        ro.observe(el);
         setTimeout(() => { try { map.resize(); } catch {} }, 120);
       } catch (e: any) {
         setDebug("ex: " + (e?.message ?? "unknown").slice(0, 80));
@@ -792,4 +904,7 @@ const components: Record<string, React.FC<{ w: WidgetInstance }>> = {
   signal_bar: SignalBar,
   system_stats: SystemStats,
   wind_vector: WindVector,
+  cabin_status: Cabin,
+  baro_tile: Baro,
+  wll_link: WllLink,
 };
