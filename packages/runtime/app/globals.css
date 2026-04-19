@@ -1,12 +1,30 @@
 @import "tailwindcss";
+@import "maplibre-gl/dist/maplibre-gl.css";
+
+:root {
+  --cockpit-bg: #07090c;
+  --cockpit-fg: #e7ecf3;
+  --cockpit-accent: #ffae00;
+  --tile-bg: rgba(18, 22, 28, 0.72);
+  --tile-bg-elev: rgba(24, 30, 38, 0.82);
+  --tile-border: rgba(255, 255, 255, 0.06);
+  --tile-border-hi: rgba(255, 174, 0, 0.22);
+  --shadow-sm: 0 1px 0 rgba(255,255,255,0.03) inset, 0 2px 8px rgba(0,0,0,0.35);
+  --shadow-md: 0 1px 0 rgba(255,255,255,0.04) inset, 0 8px 24px rgba(0,0,0,0.45);
+}
 
 html, body { height: 100%; margin: 0; }
 body.cockpit-body {
-  background: var(--cockpit-bg, #0b0d10);
-  color: var(--cockpit-fg, #e7ecf3);
-  font-family: ui-sans-serif, system-ui, -apple-system, "Inter", sans-serif;
+  background:
+    radial-gradient(1200px 800px at 15% -10%, rgba(255,174,0,0.04), transparent 55%),
+    radial-gradient(900px 600px at 110% 110%, rgba(59,130,246,0.05), transparent 55%),
+    var(--cockpit-bg);
+  color: var(--cockpit-fg);
+  font-family: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-feature-settings: "ss01", "cv11", "tnum";
   overflow: hidden;
   user-select: none;
+  -webkit-font-smoothing: antialiased;
 }
 
 .cockpit-grid {
@@ -18,13 +36,62 @@ body.cockpit-body {
 }
 
 .tile {
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 10px;
+  position: relative;
+  background: var(--tile-bg);
+  border: 1px solid var(--tile-border);
+  border-radius: 12px;
   padding: 10px 12px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(6px) saturate(115%);
+  -webkit-backdrop-filter: blur(6px) saturate(115%);
+  transition: border-color 140ms ease, box-shadow 140ms ease;
 }
-.tile-title { font-size: 11px; opacity: .65; text-transform: uppercase; letter-spacing: .06em; }
-.tile-body { flex: 1; display: flex; align-items: center; justify-content: center; }
+.tile::before {
+  content: "";
+  position: absolute; top: 0; left: 10px; right: 10px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,174,0,0.35), transparent);
+  opacity: .55;
+  pointer-events: none;
+}
+.tile-title {
+  font-size: 10px;
+  font-weight: 600;
+  opacity: .55;
+  text-transform: uppercase;
+  letter-spacing: .12em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.tile-title::before {
+  content: "";
+  width: 4px; height: 4px; border-radius: 999px;
+  background: var(--cockpit-accent);
+  box-shadow: 0 0 6px rgba(255,174,0,0.7);
+}
+.tile-body { flex: 1; display: flex; align-items: center; justify-content: center; min-height: 0; min-width: 0; }
+
+/* Map containers need explicit height; MapLibre otherwise collapses. */
+.maplibregl-map { background: #0a0d11; }
+
+/* Chip-style inline value used in overlays */
+.hud-chip {
+  font-family: ui-monospace, "JetBrains Mono", monospace;
+  font-size: 10px;
+  background: rgba(0,0,0,0.55);
+  border: 1px solid rgba(255,255,255,0.06);
+  padding: 2px 6px;
+  border-radius: 6px;
+  letter-spacing: .02em;
+}
+
+/* Subtle scroll fade for overflow lists */
+.fade-bottom {
+  mask-image: linear-gradient(to bottom, black 80%, transparent);
+  -webkit-mask-image: linear-gradient(to bottom, black 80%, transparent);
+}

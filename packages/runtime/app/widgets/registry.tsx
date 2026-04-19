@@ -69,12 +69,21 @@ const Starlink = ({ w }: { w: WidgetInstance }) => {
   const d = useBindingData(w.bind);
   const dl = d?.dlMbps;
   const state = d?.state;
+  const dead = state === "not_configured";
   return (
     <Tile w={w}>
-      <div className="flex flex-col items-center">
-        <div className="text-3xl font-semibold tabular-nums">{dl ?? (state === "not_configured" ? "—" : "…")}<span className="text-base opacity-70 ml-1">Mbps</span></div>
-        <div className="text-[10px] uppercase opacity-60 tracking-wide mt-1">
-          {state === "not_configured" ? "dishy api off" : `${d?.latMs ?? "—"} ms · ${d?.obstructedPct ?? "—"}% obs`}
+      <div className="flex items-center justify-between w-full h-full gap-3">
+        <div className="flex flex-col">
+          <div className="text-[9px] uppercase tracking-[0.2em] opacity-50">Down</div>
+          <div className="flex items-baseline gap-1">
+            <span className="text-2xl font-semibold tabular-nums" style={{ color: dead ? "rgba(255,255,255,0.4)" : "#e7ecf3" }}>{dl ?? (dead ? "—" : "…")}</span>
+            <span className="text-[10px] opacity-55">Mb/s</span>
+          </div>
+        </div>
+        <div className="flex flex-col items-end gap-1 text-[10px] tabular-nums opacity-70">
+          <div>{d?.latMs ?? "—"} <span className="opacity-55">ms</span></div>
+          <div>{d?.obstructedPct ?? "—"}<span className="opacity-55">% obs</span></div>
+          {dead && <div className="text-[9px] uppercase tracking-[0.15em] opacity-45">dish offline</div>}
         </div>
       </div>
     </Tile>
@@ -95,12 +104,23 @@ const Gps = ({ w }: { w: WidgetInstance }) => {
 
 const Weather = ({ w }: { w: WidgetInstance }) => {
   const d = useBindingData(w.bind);
+  const cells = [
+    { label: "TEMP", value: d?.tempC ?? "—", unit: "°C" },
+    { label: "HUM", value: d?.humidityPct ?? "—", unit: "%" },
+    { label: "WIND", value: d?.windKph ?? "—", unit: "km/h" },
+  ];
   return (
     <Tile w={w}>
-      <div className="flex gap-6 items-center justify-center">
-        <Metric label="Temp" value={d?.tempC ?? "—"} unit="°C" />
-        <Metric label="Humidity" value={d?.humidityPct ?? "—"} unit="%" />
-        <Metric label="Wind" value={d?.windKph ?? "—"} unit="km/h" />
+      <div className="flex items-stretch justify-between w-full h-full gap-2">
+        {cells.map((c, i) => (
+          <div key={c.label} className="flex-1 flex flex-col items-center justify-center"
+               style={i < cells.length - 1 ? { borderRight: "1px solid rgba(255,255,255,0.05)" } : undefined}>
+            <div className="text-[9px] uppercase tracking-[0.2em] opacity-50">{c.label}</div>
+            <div className="text-xl font-semibold tabular-nums mt-0.5">
+              {c.value}<span className="text-[11px] opacity-60 ml-0.5">{c.unit}</span>
+            </div>
+          </div>
+        ))}
       </div>
     </Tile>
   );
@@ -186,15 +206,17 @@ const CameraTile = ({ w }: { w: WidgetInstance }) => {
             style={style}
           />
         ) : (
-          <div className="absolute inset-0 flex items-center justify-center text-xs opacity-50">
+          <div className="absolute inset-0 flex items-center justify-center text-[11px] uppercase tracking-[0.2em] opacity-45">
             {err ? "stream error" : "camera pending"}
           </div>
         )}
-        {w.title ? (
-          <div className="absolute top-1 left-2 text-[10px] uppercase tracking-wider opacity-80 bg-black/40 px-1 rounded">
-            {w.title}
+        {/* subtle live indicator — title is rendered by the tile chrome above */}
+        {d?.streamUrl && !err && (
+          <div className="absolute top-1.5 right-1.5 flex items-center gap-1.5 hud-chip">
+            <span className="w-1.5 h-1.5 rounded-full" style={{ background: "#ff3939", boxShadow: "0 0 6px rgba(255,57,57,.7)" }} />
+            <span>LIVE</span>
           </div>
-        ) : null}
+        )}
       </div>
     </Tile>
   );
@@ -211,8 +233,7 @@ const MapTile = ({ w }: { w: WidgetInstance }) => {
     (async () => {
       if (!containerRef.current) return;
       const maplibre = await import("maplibre-gl");
-      await import("maplibre-gl/dist/maplibre-gl.css" as any).catch(() => {});
-      if (cancelled || mapRef.current) return;
+if (cancelled || mapRef.current) return;
       maplibreRef.current = maplibre;
       const map = new maplibre.Map({
         container: containerRef.current,
@@ -273,8 +294,7 @@ const GpsMap3d = ({ w }: { w: WidgetInstance }) => {
     (async () => {
       if (!containerRef.current) return;
       const maplibre = await import("maplibre-gl");
-      await import("maplibre-gl/dist/maplibre-gl.css" as any).catch(() => {});
-      if (cancelled || mapRef.current) return;
+if (cancelled || mapRef.current) return;
       const map = new maplibre.Map({
         container: containerRef.current,
         style: {
@@ -335,11 +355,12 @@ const GpsMap3d = ({ w }: { w: WidgetInstance }) => {
     <Tile w={w} pad={false}>
       <div className="relative w-full h-full">
         <div ref={containerRef} className="absolute inset-0 rounded-md overflow-hidden" />
-        <div className="absolute top-1 left-2 text-[10px] font-mono px-1.5 py-0.5 rounded" style={{ background: "rgba(0,0,0,.55)", color: fixBadge.color }}>
-          {fixBadge.text} · {d?.satellites ?? "—"} sats
+        <div className="absolute top-1.5 left-1.5 hud-chip flex items-center gap-1.5" style={{ color: fixBadge.color, borderColor: `${fixBadge.color}40` }}>
+          <span className="w-1.5 h-1.5 rounded-full" style={{ background: fixBadge.color, boxShadow: `0 0 6px ${fixBadge.color}AA` }} />
+          {fixBadge.text} · {d?.satellites ?? "—"} SATS
         </div>
-        <div className="absolute bottom-1 right-2 text-[10px] font-mono opacity-90 pointer-events-none px-1.5 py-0.5 rounded" style={{ background: "rgba(0,0,0,.55)" }}>
-          {d?.lat?.toFixed?.(4) ?? "—"}, {d?.lon?.toFixed?.(4) ?? "—"} · {d?.speedKph ?? "—"} km/h · {d?.headingDeg ?? "—"}°
+        <div className="absolute bottom-1.5 right-1.5 hud-chip pointer-events-none">
+          {d?.lat?.toFixed?.(4) ?? "—"}, {d?.lon?.toFixed?.(4) ?? "—"} · {d?.speedKph ?? "—"} KM/H · {d?.headingDeg ?? "—"}°
         </div>
       </div>
     </Tile>
@@ -349,13 +370,22 @@ const GpsMap3d = ({ w }: { w: WidgetInstance }) => {
 const Stormfront = ({ w }: { w: WidgetInstance }) => {
   const d = useBindingData(w.bind);
   const stale = d?.__stale;
+  const risk = (d?.riskLabel as string | undefined)?.toUpperCase() ?? "—";
+  const riskColor = (() => {
+    const r = risk.toLowerCase();
+    if (r.includes("high") || r.includes("severe") || r.includes("extreme")) return "#ff5a3a";
+    if (r.includes("elevated") || r.includes("slight") || r.includes("moderate")) return "#ffae00";
+    if (r.includes("low") || r.includes("marginal")) return "#7cc3ff";
+    return "rgba(255,255,255,0.6)";
+  })();
   return (
     <Tile w={w}>
-      <div className="text-center">
-        <div className="text-4xl font-semibold">{d?.riskLabel ?? "—"}</div>
-        <div className="text-xs opacity-70 mt-1">{d?.summary ?? ""}</div>
+      <div className="flex flex-col items-center justify-center h-full w-full text-center gap-1.5 px-2">
+        <div className="text-[9px] uppercase tracking-[0.3em] opacity-45">Convective outlook</div>
+        <div className="text-3xl font-semibold tracking-tight" style={{ color: riskColor, textShadow: `0 0 12px ${riskColor}30` }}>{risk}</div>
+        {d?.summary && <div className="text-[11px] opacity-65 leading-snug line-clamp-2">{d.summary}</div>}
         {typeof stale === "number" && stale > 60 && (
-          <div className="text-[10px] mt-1" style={{ color: "#ffae00" }}>STALE · {Math.round(stale / 60)}m old</div>
+          <div className="hud-chip mt-0.5" style={{ color: "#ffae00", borderColor: "rgba(255,174,0,0.3)" }}>STALE · {Math.round(stale / 60)}m</div>
         )}
       </div>
     </Tile>
@@ -367,11 +397,19 @@ const Dispatch = ({ w }: { w: WidgetInstance }) => {
   const items: any[] = Array.isArray(d?.events) ? d.events : [];
   return (
     <Tile w={w}>
-      <div className="w-full text-xs space-y-1 overflow-hidden">
-        {items.slice(0, 4).map((e, i) => (
-          <div key={i} className="truncate">· {e.title ?? e.message ?? "event"}</div>
-        ))}
-        {items.length === 0 && <div className="opacity-60">No dispatch events</div>}
+      <div className="w-full h-full text-xs overflow-hidden fade-bottom">
+        {items.length === 0 ? (
+          <div className="h-full flex items-center justify-center text-[11px] opacity-45 uppercase tracking-[0.15em]">Standby</div>
+        ) : (
+          <div className="flex flex-col gap-1">
+            {items.slice(0, 6).map((e, i) => (
+              <div key={i} className="flex items-start gap-2 truncate">
+                <span className="mt-[6px] w-1 h-1 rounded-full flex-shrink-0" style={{ background: "#ffae00", boxShadow: "0 0 4px rgba(255,174,0,0.7)" }} />
+                <span className="truncate">{e.title ?? e.message ?? "event"}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </Tile>
   );
@@ -409,10 +447,10 @@ const Clock = ({ w }: { w: WidgetInstance }) => {
   const label = tz ? tz.split("/").pop()?.replace(/_/g, " ") : null;
   return (
     <Tile w={w}>
-      <div className="flex flex-col items-center justify-center h-full">
-        <div className="text-4xl tabular-nums" suppressHydrationWarning>{time}</div>
-        {showDate && <div className="text-[11px] opacity-70 mt-1" suppressHydrationWarning>{date}</div>}
-        {label && <div className="text-[10px] uppercase tracking-wide opacity-50 mt-0.5">{label}</div>}
+      <div className="flex flex-col items-center justify-center h-full w-full">
+        <div className="text-[36px] leading-none font-light tabular-nums tracking-tight" style={{ fontFeatureSettings: '"tnum", "ss01"' }} suppressHydrationWarning>{time}</div>
+        {showDate && <div className="text-[11px] opacity-65 mt-2 tabular-nums" suppressHydrationWarning>{date}</div>}
+        {label && <div className="text-[9px] uppercase tracking-[0.25em] opacity-40 mt-1">{label}</div>}
       </div>
     </Tile>
   );
@@ -504,54 +542,69 @@ function StripCell({ slug, label, rotate }: { slug: string; label: string; rotat
   );
 }
 
-// Compass rose — bearing from GPS heading
+// Compass rose — vehicle heading. Matches WindVector visual language.
 const CompassRose = ({ w }: { w: WidgetInstance }) => {
   const d = useBindingData(w.bind);
-  const heading = typeof d?.headingDeg === "number" ? d.headingDeg : 0;
-  const cardinal = (h: number) => {
+  const heading = typeof d?.headingDeg === "number" ? d.headingDeg : null;
+  const h = heading ?? 0;
+  const cardinal = (hh: number | null) => {
+    if (hh === null) return "—";
     const dirs = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
-    return dirs[Math.round(((h % 360) / 45)) % 8];
+    return dirs[Math.round(((hh % 360) / 45)) % 8];
   };
   return (
     <Tile w={w} pad={false}>
-      <div className="relative w-full h-full flex items-center justify-center">
-        <svg viewBox="-50 -50 100 100" className="w-full h-full" style={{ maxHeight: "90%" }}>
-          <circle cx="0" cy="0" r="44" fill="none" stroke="currentColor" strokeOpacity="0.25" strokeWidth="1" />
-          {[0, 45, 90, 135, 180, 225, 270, 315].map((a) => {
-            const rad = (a * Math.PI) / 180;
-            const x1 = Math.sin(rad) * 40;
-            const y1 = -Math.cos(rad) * 40;
-            const x2 = Math.sin(rad) * 44;
-            const y2 = -Math.cos(rad) * 44;
-            return <line key={a} x1={x1} y1={y1} x2={x2} y2={y2} stroke="currentColor" strokeOpacity="0.4" strokeWidth="1" />;
+      <div className="relative w-full h-full flex items-center justify-center p-2">
+        <svg viewBox="-50 -50 100 100" className="w-full h-full" preserveAspectRatio="xMidYMid meet">
+          <circle cx="0" cy="0" r="44" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="1" />
+          <circle cx="0" cy="0" r="38" fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="1" />
+          {Array.from({ length: 12 }).map((_, i) => {
+            const a = (i * 30 * Math.PI) / 180;
+            const major = i % 3 === 0;
+            const r1 = major ? 40 : 42;
+            return (
+              <line key={i}
+                x1={Math.sin(a) * r1} y1={-Math.cos(a) * r1}
+                x2={Math.sin(a) * 44} y2={-Math.cos(a) * 44}
+                stroke="rgba(255,255,255,0.35)" strokeWidth={major ? 1.2 : 0.6} />
+            );
           })}
-          <text x="0" y="-32" textAnchor="middle" fontSize="10" fill="currentColor" opacity="0.7">N</text>
-          <text x="34" y="4" textAnchor="middle" fontSize="8" fill="currentColor" opacity="0.5">E</text>
-          <text x="0" y="38" textAnchor="middle" fontSize="8" fill="currentColor" opacity="0.5">S</text>
-          <text x="-34" y="4" textAnchor="middle" fontSize="8" fill="currentColor" opacity="0.5">W</text>
-          <g transform={`rotate(${heading})`}>
-            <polygon points="0,-30 6,6 0,2 -6,6" fill="#ffae00" />
-          </g>
+          <text x="0" y="-29" textAnchor="middle" fontSize="7" fill="rgba(255,255,255,0.55)" fontWeight="600">N</text>
+          <text x="29" y="2.5" textAnchor="middle" fontSize="6" fill="rgba(255,255,255,0.35)">E</text>
+          <text x="0" y="33" textAnchor="middle" fontSize="6" fill="rgba(255,255,255,0.35)">S</text>
+          <text x="-29" y="2.5" textAnchor="middle" fontSize="6" fill="rgba(255,255,255,0.35)">W</text>
+          {heading !== null && (
+            <g transform={`rotate(${h})`}>
+              <polygon points="0,-26 4,4 0,1 -4,4" fill="#ffae00" filter="drop-shadow(0 0 3px rgba(255,174,0,0.6))" />
+            </g>
+          )}
+          <text x="0" y="-1" textAnchor="middle" fontSize="13" fill="#e7ecf3" fontWeight="600" style={{ fontVariantNumeric: "tabular-nums" }}>{heading === null ? "—" : Math.round(h)}</text>
+          <text x="0" y="7.5" textAnchor="middle" fontSize="4" fill="rgba(255,255,255,0.5)" letterSpacing="0.8">DEG</text>
         </svg>
-        <div className="absolute bottom-1 text-[11px] font-mono tabular-nums">
-          {cardinal(heading)} · {Math.round(heading)}°
+        <div className="absolute bottom-1.5 left-0 right-0 flex justify-center">
+          <div className="hud-chip">{cardinal(heading)}</div>
         </div>
       </div>
     </Tile>
   );
 };
 
-// Big speed readout for driver screen
+// Big speed readout for driver screen — ghost "88" behind live digits
 const SpeedHud = ({ w }: { w: WidgetInstance }) => {
   const d = useBindingData(w.bind);
   const kph = typeof d?.speedKph === "number" ? d.speedKph : null;
   const unit = ((w.props as any)?.unit as "kph" | "mph") ?? "kph";
   const val = kph === null ? null : unit === "mph" ? Math.round(kph * 0.621371) : Math.round(kph);
+  const display = val === null ? "—" : String(val).padStart(val > 99 ? 3 : 2, "0");
+  const ghost = val === null ? "888" : "8".repeat(display.length);
   return (
     <Tile w={w}>
-      <div className="flex flex-col items-center justify-center h-full">
-        <div className="text-[64px] leading-none font-semibold tabular-nums">{val ?? "—"}</div>
-        <div className="text-[10px] uppercase tracking-widest opacity-60 mt-1">{unit === "mph" ? "mph" : "km/h"}</div>
+      <div className="flex flex-col items-center justify-center h-full w-full">
+        <div className="relative leading-none" style={{ fontFamily: 'ui-monospace, "JetBrains Mono", monospace', fontWeight: 600 }}>
+          <span className="tabular-nums text-[68px]" style={{ color: "rgba(255,255,255,0.04)", letterSpacing: ".02em" }}>{ghost}</span>
+          <span className="tabular-nums text-[68px] absolute inset-0 flex items-center justify-center" style={{ color: "#ffae00", textShadow: "0 0 12px rgba(255,174,0,0.35)", letterSpacing: ".02em" }}>{display}</span>
+        </div>
+        <div className="text-[10px] uppercase tracking-[0.3em] opacity-50 mt-2">{unit === "mph" ? "miles · hour" : "kilometres · hour"}</div>
       </div>
     </Tile>
   );
@@ -562,17 +615,22 @@ const SignalBar = ({ w }: { w: WidgetInstance }) => {
   const sl = useBindingData({ source: "local", sensor: "starlink", refreshMs: 3000 } as any);
   const dots = [
     { label: "WG", ok: true, value: "up" },
-    { label: "SL", ok: sl?.state !== "not_configured" && sl?.dlMbps != null, value: sl?.dlMbps != null ? `${sl.dlMbps}` : (sl?.state === "not_configured" ? "off" : "…") },
+    { label: "SL", ok: sl?.state !== "not_configured" && sl?.dlMbps != null, value: sl?.dlMbps != null ? `${sl.dlMbps} Mb` : (sl?.state === "not_configured" ? "off" : "…") },
     { label: "LTE", ok: false, value: "—" },
   ];
   return (
     <Tile w={w}>
-      <div className="flex items-center justify-around h-full w-full">
+      <div className="flex items-center justify-between h-full w-full gap-2">
         {dots.map((d) => (
-          <div key={d.label} className="flex flex-col items-center">
-            <div className="w-2.5 h-2.5 rounded-full mb-1" style={{ background: d.ok ? "#2bd46d" : "#ff3939", boxShadow: d.ok ? "0 0 6px rgba(43,212,109,.6)" : "0 0 6px rgba(255,57,57,.6)" }} />
-            <div className="text-[10px] uppercase tracking-wider opacity-80">{d.label}</div>
-            <div className="text-[10px] opacity-60 tabular-nums">{d.value}</div>
+          <div key={d.label} className="flex-1 flex items-center gap-2 rounded-md px-2 py-1.5" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.05)" }}>
+            <div className="w-2 h-2 rounded-full flex-shrink-0" style={{
+              background: d.ok ? "#2bd46d" : "rgba(255,255,255,0.18)",
+              boxShadow: d.ok ? "0 0 8px rgba(43,212,109,.7)" : "none"
+            }} />
+            <div className="min-w-0">
+              <div className="text-[9px] uppercase tracking-[0.15em] opacity-55 leading-none">{d.label}</div>
+              <div className="text-[11px] opacity-90 tabular-nums leading-tight mt-0.5 truncate">{d.value}</div>
+            </div>
           </div>
         ))}
       </div>
@@ -585,34 +643,81 @@ const SystemStats = ({ w }: { w: WidgetInstance }) => {
   const d = useBindingData({ source: "local", sensor: "compute", refreshMs: 5000 } as any);
   const up = (d?.uptimeSec as number | undefined) ?? 0;
   const upStr = up < 60 ? `${up}s` : up < 3600 ? `${Math.round(up / 60)}m` : up < 86400 ? `${Math.round(up / 3600)}h` : `${Math.round(up / 86400)}d`;
+  const memPct = typeof d?.memUsedPct === "number" ? d.memUsedPct : null;
+  const loadAvg = typeof d?.loadAvg1 === "number" ? d.loadAvg1 : null;
+  const cells = [
+    { label: "LOAD", value: loadAvg === null ? "—" : loadAvg.toFixed(2), unit: "" },
+    { label: "MEM", value: memPct === null ? "—" : memPct, unit: "%" },
+    { label: "UP", value: upStr, unit: "" },
+  ];
   return (
     <Tile w={w}>
-      <div className="flex gap-4 items-center justify-center w-full">
-        <Metric label="Load" value={d?.loadAvg1 ?? "—"} />
-        <Metric label="Mem" value={d?.memUsedPct ?? "—"} unit="%" />
-        <Metric label="Up" value={upStr} />
+      <div className="flex items-stretch justify-between w-full h-full gap-2">
+        {cells.map((c, i) => (
+          <div key={c.label} className="flex-1 flex flex-col items-center justify-center" style={i < cells.length - 1 ? { borderRight: "1px solid rgba(255,255,255,0.05)" } : undefined}>
+            <div className="text-[9px] uppercase tracking-[0.2em] opacity-50">{c.label}</div>
+            <div className="text-xl font-semibold tabular-nums mt-0.5">
+              {c.value}{c.unit && <span className="text-xs opacity-60 ml-0.5">{c.unit}</span>}
+            </div>
+          </div>
+        ))}
       </div>
     </Tile>
   );
 };
 
-// Wind vector — dial + gust readout, binds to local.weather
+// Wind vector — meteorological convention: arrow points in the direction the
+// wind is GOING (downwind). Dial shows cardinal marks, centre shows speed.
 const WindVector = ({ w }: { w: WidgetInstance }) => {
   const d = useBindingData(w.bind);
-  const dir = typeof d?.windDirDeg === "number" ? d.windDirDeg : 0;
+  const dir = typeof d?.windDirDeg === "number" ? d.windDirDeg : null;
   const kph = typeof d?.windKph === "number" ? d.windKph : null;
+  const cardinal = (h: number | null) => {
+    if (h === null) return "—";
+    const dirs = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
+    return dirs[Math.round(((h % 360) / 45)) % 8];
+  };
+  const rot = dir ?? 0;
   return (
     <Tile w={w} pad={false}>
-      <div className="relative w-full h-full flex items-center justify-center">
-        <svg viewBox="-50 -50 100 100" className="w-full h-full" style={{ maxHeight: "80%" }}>
-          <circle cx="0" cy="0" r="42" fill="none" stroke="currentColor" strokeOpacity="0.2" />
-          <g transform={`rotate(${dir})`}>
-            <line x1="0" y1="30" x2="0" y2="-30" stroke="#7cc3ff" strokeWidth="3" strokeLinecap="round" />
-            <polygon points="0,-34 5,-26 -5,-26" fill="#7cc3ff" />
-          </g>
+      <div className="relative w-full h-full flex items-center justify-center p-2">
+        <svg viewBox="-50 -50 100 100" className="w-full h-full" preserveAspectRatio="xMidYMid meet">
+          {/* Outer ring */}
+          <circle cx="0" cy="0" r="44" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="1" />
+          <circle cx="0" cy="0" r="38" fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="1" />
+          {/* Tick marks every 30° */}
+          {Array.from({ length: 12 }).map((_, i) => {
+            const a = (i * 30 * Math.PI) / 180;
+            const major = i % 3 === 0;
+            const r1 = major ? 40 : 42;
+            const r2 = 44;
+            return (
+              <line key={i}
+                x1={Math.sin(a) * r1} y1={-Math.cos(a) * r1}
+                x2={Math.sin(a) * r2} y2={-Math.cos(a) * r2}
+                stroke="rgba(255,255,255,0.35)"
+                strokeWidth={major ? 1.2 : 0.6} />
+            );
+          })}
+          {/* Cardinal letters */}
+          <text x="0" y="-29" textAnchor="middle" fontSize="7" fill="rgba(255,255,255,0.55)" fontWeight="600">N</text>
+          <text x="29" y="2.5" textAnchor="middle" fontSize="6" fill="rgba(255,255,255,0.35)">E</text>
+          <text x="0" y="33" textAnchor="middle" fontSize="6" fill="rgba(255,255,255,0.35)">S</text>
+          <text x="-29" y="2.5" textAnchor="middle" fontSize="6" fill="rgba(255,255,255,0.35)">W</text>
+          {/* Wind arrow — slim shaft + head, rotates with direction */}
+          {dir !== null && (
+            <g transform={`rotate(${rot})`}>
+              <line x1="0" y1="-18" x2="0" y2="20" stroke="#7cc3ff" strokeWidth="1.6" strokeLinecap="round" />
+              <polygon points="0,-24 4,-16 -4,-16" fill="#7cc3ff" />
+              <circle cx="0" cy="0" r="2" fill="#7cc3ff" />
+            </g>
+          )}
+          {/* Centre speed readout */}
+          <text x="0" y="-1" textAnchor="middle" fontSize="13" fill="#e7ecf3" fontWeight="600" style={{ fontVariantNumeric: "tabular-nums" }}>{kph ?? "—"}</text>
+          <text x="0" y="7.5" textAnchor="middle" fontSize="4" fill="rgba(255,255,255,0.5)" letterSpacing="0.8">KM/H</text>
         </svg>
-        <div className="absolute bottom-1 text-[11px] font-mono tabular-nums">
-          {kph ?? "—"} km/h · {Math.round(dir)}°
+        <div className="absolute bottom-1.5 left-0 right-0 flex justify-center">
+          <div className="hud-chip">{cardinal(dir)} · {dir === null ? "—" : Math.round(dir) + "°"}</div>
         </div>
       </div>
     </Tile>
