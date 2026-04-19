@@ -51,6 +51,7 @@ export type Binding = z.infer<typeof binding>;
 export const widgetType = z.enum([
   "starlink_status",
   "gps_position",
+  "gps_map3d",
   "weather_tile",
   "roof_environment",
   "camera_tile",
