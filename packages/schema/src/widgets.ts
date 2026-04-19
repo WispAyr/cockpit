@@ -55,6 +55,7 @@ export const widgetType = z.enum([
   "weather_tile",
   "roof_environment",
   "camera_tile",
+  "camera_strip",
   "map_tile",
   "stormfront_outlook",
   "adsb_strip",
@@ -64,6 +65,11 @@ export const widgetType = z.enum([
   "van_spectrum_slot",
   "text_block",
   "clock",
+  "compass_rose",
+  "speed_hud",
+  "signal_bar",
+  "system_stats",
+  "wind_vector",
 ]);
 export type WidgetType = z.infer<typeof widgetType>;
 
