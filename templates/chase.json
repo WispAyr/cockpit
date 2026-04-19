@@ -17,8 +17,16 @@
       "id": "cam-primary",
       "type": "camera_tile",
       "title": "Primary · NVR ch1",
-      "grid": { "col": 8, "row": 1, "w": 5, "h": 4 },
+      "grid": { "col": 8, "row": 1, "w": 5, "h": 2 },
       "bind": { "source": "camera", "vehicleCameraSlug": "nvr-ch1" },
+      "props": { "rotate": 0, "objectFit": "cover" }
+    },
+    {
+      "id": "cam-drone",
+      "type": "camera_tile",
+      "title": "Drone · Mavic Pro",
+      "grid": { "col": 8, "row": 3, "w": 5, "h": 2 },
+      "bind": { "source": "camera", "vehicleCameraSlug": "mavic" },
       "props": { "rotate": 0, "objectFit": "cover" }
     },
     {
