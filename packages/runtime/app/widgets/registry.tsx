@@ -250,28 +250,39 @@ const MapTile = ({ w }: { w: WidgetInstance }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<any>(null);
   const maplibreRef = useRef<any>(null);
+  const [debug, setDebug] = useState<string>("init");
 
   useEffect(() => {
     let cancelled = false;
     let ro: ResizeObserver | null = null;
     (async () => {
       if (!containerRef.current) return;
-      const maplibre = await import("maplibre-gl");
-      if (cancelled || mapRef.current) return;
-      maplibreRef.current = maplibre;
-      const map = new maplibre.Map({
-        container: containerRef.current,
-        style: darkRasterStyle(),
-        center: [-4.629, 55.458],
-        zoom: 7,
-        attributionControl: false,
-      });
-      mapRef.current = map;
-      // Container often starts at 0×0 (CSS grid + flex settle after paint).
-      // Re-measure on every resize so maplibre repaints at the real size.
-      ro = new ResizeObserver(() => { try { map.resize(); } catch {} });
-      if (containerRef.current) ro.observe(containerRef.current);
-      setTimeout(() => { try { map.resize(); } catch {} }, 120);
+      try {
+        setDebug("importing maplibre");
+        const maplibre = await import("maplibre-gl");
+        if (cancelled || mapRef.current) return;
+        maplibreRef.current = maplibre;
+        setDebug(`container ${containerRef.current.clientWidth}x${containerRef.current.clientHeight}`);
+        const map = new maplibre.Map({
+          container: containerRef.current,
+          style: darkRasterStyle(),
+          center: [-4.629, 55.458],
+          zoom: 7,
+          attributionControl: false,
+        });
+        mapRef.current = map;
+        map.on("error", (e: any) => {
+          const msg = e?.error?.message ?? e?.message ?? "unknown";
+          setDebug("err: " + String(msg).slice(0, 80));
+        });
+        map.on("load", () => setDebug("loaded"));
+        map.on("sourcedata", (e: any) => { if (e.isSourceLoaded) setDebug("ok"); });
+        ro = new ResizeObserver(() => { try { map.resize(); } catch {} });
+        if (containerRef.current) ro.observe(containerRef.current);
+        setTimeout(() => { try { map.resize(); } catch {} }, 120);
+      } catch (e: any) {
+        setDebug("ex: " + (e?.message ?? "unknown").slice(0, 80));
+      }
     })();
     return () => {
       cancelled = true;
@@ -304,6 +315,9 @@ const MapTile = ({ w }: { w: WidgetInstance }) => {
     <Tile w={w} pad={false}>
       <div className="relative w-full h-full">
         <div ref={containerRef} className="absolute inset-0 rounded-md overflow-hidden" />
+        <div className="absolute bottom-1 left-1 hud-chip pointer-events-none" style={{ color: debug.startsWith("err") || debug.startsWith("ex") ? "#ff5a3a" : "#7cc3ff" }}>
+          {debug}
+        </div>
       </div>
     </Tile>
   );
