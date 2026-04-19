@@ -433,9 +433,11 @@ const MapTile = ({ w }: { w: WidgetInstance }) => {
     <Tile w={w} pad={false}>
       <div style={{ position: "relative", flex: 1, alignSelf: "stretch", width: "100%", minHeight: 0 }}>
         <div ref={containerRef} style={{ position: "absolute", inset: 0, borderRadius: 6, overflow: "hidden" }} />
-        <div className="hud-chip pointer-events-none" style={{ position: "absolute", bottom: 4, left: 4, color: debug.startsWith("err") || debug.startsWith("ex") ? "#ff5a3a" : "#7cc3ff" }}>
-          {debug}
-        </div>
+        {(debug.startsWith("err") || debug.startsWith("ex") || debug === "no webgl" || debug === "webgl blocked") && (
+          <div className="hud-chip pointer-events-none" style={{ position: "absolute", bottom: 4, left: 4, color: "#ff5a3a" }}>
+            {debug}
+          </div>
+        )}
       </div>
     </Tile>
   );
