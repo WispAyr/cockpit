@@ -217,12 +217,42 @@ const WllLink = ({ w }: { w: WidgetInstance }) => {
   );
 };
 
+// Poll go2rtc's /api/streams and report whether <slug> currently has an active
+// producer attached. Used to auto-hide camera tiles when upstream disconnects
+// (drone packs up, NVR channel unplugged, etc.) without flashing a broken video.
+function useStreamPresence(slug: string | undefined): "live" | "dark" | "unknown" {
+  const [state, setState] = useState<"live" | "dark" | "unknown">("unknown");
+  useEffect(() => {
+    if (!slug) return;
+    let alive = true;
+    const tick = async () => {
+      try {
+        const r = await fetch("/go2rtc/streams", { cache: "no-store" });
+        if (!r.ok) return;
+        const j = await r.json();
+        const s = j?.[slug];
+        if (!alive) return;
+        const producers = s?.producers;
+        setState(Array.isArray(producers) && producers.length > 0 ? "live" : "dark");
+      } catch {
+        if (alive) setState("unknown");
+      }
+    };
+    tick();
+    const id = setInterval(tick, 5000);
+    return () => { alive = false; clearInterval(id); };
+  }, [slug]);
+  return state;
+}
+
 const CameraTile = ({ w }: { w: WidgetInstance }) => {
   const d = useBindingData(w.bind);
   const rotate = (w.props as any)?.rotate as number | undefined;
   const objectFit = ((w.props as any)?.objectFit as "cover" | "contain") ?? "cover";
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [err, setErr] = useState(false);
+  const slug = w.bind?.source === "camera" ? w.bind.vehicleCameraSlug : undefined;
+  const presence = useStreamPresence(slug);
 
   // Lazy-load hls.js when the browser can't do native HLS (most desktops).
   // On fatal errors (go2rtc cold-start, network blip, RTSP drop), try hls.js's
@@ -287,7 +317,7 @@ const CameraTile = ({ w }: { w: WidgetInstance }) => {
   return (
     <Tile w={w} pad={false}>
       <div style={{ position: "relative", flex: 1, alignSelf: "stretch", width: "100%", minHeight: 0, overflow: "hidden", borderRadius: 6, background: "#000" }}>
-        {d?.streamUrl && !err ? (
+        {d?.streamUrl && !err && presence !== "dark" ? (
           <video
             ref={videoRef}
             poster={d?.posterUrl}
@@ -297,11 +327,12 @@ const CameraTile = ({ w }: { w: WidgetInstance }) => {
             style={style}
           />
         ) : (
-          <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }} className="text-[11px] uppercase tracking-[0.2em] opacity-45">
-            {err ? "stream error" : "camera pending"}
+          <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 4 }} className="text-[11px] uppercase tracking-[0.2em] opacity-45">
+            <div>{err ? "stream error" : presence === "dark" ? "standby" : "camera pending"}</div>
+            {presence === "dark" && slug && <div className="text-[9px] opacity-60">{slug} · no publisher</div>}
           </div>
         )}
-        {d?.streamUrl && !err && (
+        {d?.streamUrl && !err && presence === "live" && (
           <div className="flex items-center gap-1.5 hud-chip" style={{ position: "absolute", top: 6, right: 6 }}>
             <span className="w-1.5 h-1.5 rounded-full" style={{ background: "#ff3939", boxShadow: "0 0 6px rgba(255,57,57,.7)" }} />
             <span>LIVE</span>
