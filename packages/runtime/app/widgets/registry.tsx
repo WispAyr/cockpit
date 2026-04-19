@@ -44,7 +44,7 @@ function Tile({ w, children, pad }: { w: WidgetInstance; children: React.ReactNo
   return (
     <div className="tile" style={style}>
       {w.title && <div className="tile-title">{w.title}</div>}
-      <div className="tile-body" style={pad === false ? { padding: 0 } : undefined}>{children}</div>
+      <div className={pad === false ? "tile-body nopad" : "tile-body"} style={pad === false ? { padding: 0 } : undefined}>{children}</div>
     </div>
   );
 }

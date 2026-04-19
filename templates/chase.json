@@ -4,7 +4,7 @@
   "description": "Storm-chase primary: GPS tactical, risk surface, multi-camera strip, wind + compass, dispatch.",
   "template": "chase",
   "theme": { "name": "storm", "accent": "#ffae00", "background": "#07090c", "foreground": "#e7ecf3" },
-  "grid": { "cols": 12, "rowHeightPx": 108, "gapPx": 10 },
+  "grid": { "cols": 12, "rowHeightPx": 88, "gapPx": 8 },
   "widgets": [
     {
       "id": "gps-hero",

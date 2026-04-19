@@ -75,6 +75,11 @@ body.cockpit-body {
   box-shadow: 0 0 6px rgba(255,174,0,0.7);
 }
 .tile-body { flex: 1; display: flex; align-items: center; justify-content: center; min-height: 0; min-width: 0; }
+/* Full-bleed variant for tiles that render their own content edge-to-edge
+   (maps, cameras). Without stretch, an absolute-inset-0 child collapses the
+   parent to 0 height because centered flex items don't cross-stretch. */
+.tile-body.nopad { align-items: stretch; justify-content: stretch; }
+.tile-body.nopad > * { flex: 1 1 auto; min-height: 0; min-width: 0; }
 
 /* Map containers need explicit height; MapLibre otherwise collapses. */
 .maplibregl-map { background: #0a0d11; }
