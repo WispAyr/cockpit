@@ -222,6 +222,29 @@ const CameraTile = ({ w }: { w: WidgetInstance }) => {
   );
 };
 
+// Dark raster style used by both MapTile + GpsMap3d. Uses CARTO's free
+// raster tiles (attribution per OSM + CARTO). They match the dash visually
+// far better than vanilla OSM.
+function darkRasterStyle(): any {
+  return {
+    version: 8,
+    sources: {
+      base: {
+        type: "raster",
+        tiles: [
+          "https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png",
+          "https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png",
+          "https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png",
+          "https://d.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png",
+        ],
+        tileSize: 256,
+        attribution: "© OpenStreetMap © CARTO",
+      },
+    },
+    layers: [{ id: "base", type: "raster", source: "base" }],
+  };
+}
+
 const MapTile = ({ w }: { w: WidgetInstance }) => {
   const d = useBindingData(w.bind);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -230,27 +253,31 @@ const MapTile = ({ w }: { w: WidgetInstance }) => {
 
   useEffect(() => {
     let cancelled = false;
+    let ro: ResizeObserver | null = null;
     (async () => {
       if (!containerRef.current) return;
       const maplibre = await import("maplibre-gl");
-if (cancelled || mapRef.current) return;
+      if (cancelled || mapRef.current) return;
       maplibreRef.current = maplibre;
       const map = new maplibre.Map({
         container: containerRef.current,
-        style: {
-          version: 8,
-          sources: {
-            osm: { type: "raster", tiles: ["https://a.tile.openstreetmap.org/{z}/{x}/{y}.png"], tileSize: 256, attribution: "© OpenStreetMap" },
-          },
-          layers: [{ id: "osm", type: "raster", source: "osm" }],
-        },
+        style: darkRasterStyle(),
         center: [-4.629, 55.458],
         zoom: 7,
         attributionControl: false,
       });
       mapRef.current = map;
+      // Container often starts at 0×0 (CSS grid + flex settle after paint).
+      // Re-measure on every resize so maplibre repaints at the real size.
+      ro = new ResizeObserver(() => { try { map.resize(); } catch {} });
+      if (containerRef.current) ro.observe(containerRef.current);
+      setTimeout(() => { try { map.resize(); } catch {} }, 120);
     })();
-    return () => { cancelled = true; if (mapRef.current) { mapRef.current.remove(); mapRef.current = null; } };
+    return () => {
+      cancelled = true;
+      if (ro) ro.disconnect();
+      if (mapRef.current) { mapRef.current.remove(); mapRef.current = null; }
+    };
   }, []);
 
   useEffect(() => {
@@ -291,22 +318,17 @@ const GpsMap3d = ({ w }: { w: WidgetInstance }) => {
 
   useEffect(() => {
     let cancelled = false;
+    let ro: ResizeObserver | null = null;
     (async () => {
       if (!containerRef.current) return;
       const maplibre = await import("maplibre-gl");
-if (cancelled || mapRef.current) return;
+      if (cancelled || mapRef.current) return;
       const map = new maplibre.Map({
         container: containerRef.current,
-        style: {
-          version: 8,
-          sources: {
-            osm: { type: "raster", tiles: ["https://a.tile.openstreetmap.org/{z}/{x}/{y}.png"], tileSize: 256, attribution: "© OpenStreetMap" },
-          },
-          layers: [{ id: "osm", type: "raster", source: "osm" }],
-        },
+        style: darkRasterStyle(),
         center: [-4.629, 55.458],
         zoom: 13,
-        pitch: 60,
+        pitch: 45,
         bearing: 0,
         attributionControl: false,
       });
@@ -315,13 +337,19 @@ if (cancelled || mapRef.current) return;
       const el = document.createElement("div");
       el.style.cssText = "width:0;height:0;border-left:10px solid transparent;border-right:10px solid transparent;border-bottom:22px solid #ffae00;filter:drop-shadow(0 0 4px rgba(255,174,0,.8));transform-origin:50% 66%;";
       markerRef.current = new maplibre.Marker({ element: el, rotationAlignment: "map" }).setLngLat([-4.629, 55.458]).addTo(map);
-      // Trail line source + layer
       map.on("load", () => {
         if (!map.getSource("trail")) map.addSource("trail", { type: "geojson", data: { type: "Feature", geometry: { type: "LineString", coordinates: [] }, properties: {} } });
         if (!map.getLayer("trail-line")) map.addLayer({ id: "trail-line", type: "line", source: "trail", paint: { "line-color": "#ffae00", "line-width": 3, "line-opacity": 0.75 } });
       });
+      ro = new ResizeObserver(() => { try { map.resize(); } catch {} });
+      if (containerRef.current) ro.observe(containerRef.current);
+      setTimeout(() => { try { map.resize(); } catch {} }, 120);
     })();
-    return () => { cancelled = true; if (mapRef.current) { mapRef.current.remove(); mapRef.current = null; } };
+    return () => {
+      cancelled = true;
+      if (ro) ro.disconnect();
+      if (mapRef.current) { mapRef.current.remove(); mapRef.current = null; }
+    };
   }, []);
 
   useEffect(() => {
