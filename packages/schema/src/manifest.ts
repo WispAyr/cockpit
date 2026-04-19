@@ -28,8 +28,8 @@ export const manifest = z.object({
   name: z.string().min(1),
   description: z.string().optional(),
   template: z.enum(["chase", "livestream", "sar", "roaming", "custom"]).default("custom"),
-  theme: theme.default({}),
-  grid: layoutGrid.default({}),
+  theme: theme.prefault({}),
+  grid: layoutGrid.prefault({}),
   widgets: z.array(widgetInstance).default([]),
   metadata: z.record(z.string(), z.any()).default({}),
 });

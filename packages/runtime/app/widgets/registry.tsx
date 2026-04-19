@@ -147,9 +147,14 @@ const SarStatus = ({ w }: { w: WidgetInstance }) => {
   </Tile>;
 };
 const Clock = ({ w }: { w: WidgetInstance }) => {
-  const [t, setT] = useState(() => new Date());
-  useEffect(() => { const id = setInterval(() => setT(new Date()), 1000); return () => clearInterval(id); }, []);
-  return <Tile w={w}><div className="text-4xl tabular-nums">{t.toLocaleTimeString()}</div></Tile>;
+  const [t, setT] = useState<Date | null>(null);
+  useEffect(() => {
+    setT(new Date());
+    const id = setInterval(() => setT(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  const label = t ? t.toLocaleTimeString("en-GB", { hour12: false }) : "—";
+  return <Tile w={w}><div className="text-4xl tabular-nums" suppressHydrationWarning>{label}</div></Tile>;
 };
 const Roof = ({ w }: { w: WidgetInstance }) => {
   const d = useBindingData(w.bind);

@@ -2,6 +2,8 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import Link from "next/link";
 
+export const dynamic = "force-dynamic";
+
 async function loadTemplates() {
   const dir = path.resolve(process.cwd(), "../../templates");
   const names = await fs.readdir(dir);
