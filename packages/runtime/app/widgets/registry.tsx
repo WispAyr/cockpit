@@ -286,7 +286,7 @@ const CameraTile = ({ w }: { w: WidgetInstance }) => {
 
   return (
     <Tile w={w} pad={false}>
-      <div className="relative w-full h-full overflow-hidden rounded-md bg-black">
+      <div style={{ position: "relative", flex: 1, alignSelf: "stretch", width: "100%", minHeight: 0, overflow: "hidden", borderRadius: 6, background: "#000" }}>
         {d?.streamUrl && !err ? (
           <video
             ref={videoRef}
@@ -297,13 +297,12 @@ const CameraTile = ({ w }: { w: WidgetInstance }) => {
             style={style}
           />
         ) : (
-          <div className="absolute inset-0 flex items-center justify-center text-[11px] uppercase tracking-[0.2em] opacity-45">
+          <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }} className="text-[11px] uppercase tracking-[0.2em] opacity-45">
             {err ? "stream error" : "camera pending"}
           </div>
         )}
-        {/* subtle live indicator — title is rendered by the tile chrome above */}
         {d?.streamUrl && !err && (
-          <div className="absolute top-1.5 right-1.5 flex items-center gap-1.5 hud-chip">
+          <div className="flex items-center gap-1.5 hud-chip" style={{ position: "absolute", top: 6, right: 6 }}>
             <span className="w-1.5 h-1.5 rounded-full" style={{ background: "#ff3939", boxShadow: "0 0 6px rgba(255,57,57,.7)" }} />
             <span>LIVE</span>
           </div>
@@ -432,9 +431,9 @@ const MapTile = ({ w }: { w: WidgetInstance }) => {
 
   return (
     <Tile w={w} pad={false}>
-      <div className="relative w-full h-full">
-        <div ref={containerRef} className="absolute inset-0 rounded-md overflow-hidden" />
-        <div className="absolute bottom-1 left-1 hud-chip pointer-events-none" style={{ color: debug.startsWith("err") || debug.startsWith("ex") ? "#ff5a3a" : "#7cc3ff" }}>
+      <div style={{ position: "relative", flex: 1, alignSelf: "stretch", width: "100%", minHeight: 0 }}>
+        <div ref={containerRef} style={{ position: "absolute", inset: 0, borderRadius: 6, overflow: "hidden" }} />
+        <div className="hud-chip pointer-events-none" style={{ position: "absolute", bottom: 4, left: 4, color: debug.startsWith("err") || debug.startsWith("ex") ? "#ff5a3a" : "#7cc3ff" }}>
           {debug}
         </div>
       </div>
@@ -514,13 +513,13 @@ const GpsMap3d = ({ w }: { w: WidgetInstance }) => {
 
   return (
     <Tile w={w} pad={false}>
-      <div className="relative w-full h-full">
-        <div ref={containerRef} className="absolute inset-0 rounded-md overflow-hidden" />
-        <div className="absolute top-1.5 left-1.5 hud-chip flex items-center gap-1.5" style={{ color: fixBadge.color, borderColor: `${fixBadge.color}40` }}>
+      <div style={{ position: "relative", flex: 1, alignSelf: "stretch", width: "100%", minHeight: 0 }}>
+        <div ref={containerRef} style={{ position: "absolute", inset: 0, borderRadius: 6, overflow: "hidden" }} />
+        <div className="hud-chip flex items-center gap-1.5" style={{ position: "absolute", top: 6, left: 6, color: fixBadge.color, borderColor: `${fixBadge.color}40` }}>
           <span className="w-1.5 h-1.5 rounded-full" style={{ background: fixBadge.color, boxShadow: `0 0 6px ${fixBadge.color}AA` }} />
           {fixBadge.text} · {d?.satellites ?? "—"} SATS
         </div>
-        <div className="absolute bottom-1.5 right-1.5 hud-chip pointer-events-none">
+        <div className="hud-chip pointer-events-none" style={{ position: "absolute", bottom: 6, right: 6 }}>
           {d?.lat?.toFixed?.(4) ?? "—"}, {d?.lon?.toFixed?.(4) ?? "—"} · {d?.speedKph ?? "—"} KM/H · {d?.headingDeg ?? "—"}°
         </div>
       </div>
@@ -642,7 +641,7 @@ const CameraStrip = ({ w }: { w: WidgetInstance }) => {
   const sources = ((w.props as any)?.sources ?? []) as Array<{ slug: string; label?: string; rotate?: number }>;
   return (
     <Tile w={w} pad={false}>
-      <div className="grid gap-1 w-full h-full" style={{ gridTemplateColumns: `repeat(${sources.length || 1}, 1fr)` }}>
+      <div className="grid gap-1" style={{ flex: 1, alignSelf: "stretch", width: "100%", minHeight: 0, gridTemplateColumns: `repeat(${sources.length || 1}, 1fr)` }}>
         {sources.map((s, i) => (
           <StripCell key={s.slug + i} slug={s.slug} label={s.label ?? s.slug} rotate={s.rotate} />
         ))}
