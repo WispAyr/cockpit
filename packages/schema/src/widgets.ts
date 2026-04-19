@@ -70,6 +70,9 @@ export const widgetType = z.enum([
   "signal_bar",
   "system_stats",
   "wind_vector",
+  "cabin_status",
+  "baro_tile",
+  "wll_link",
 ]);
 export type WidgetType = z.infer<typeof widgetType>;
 

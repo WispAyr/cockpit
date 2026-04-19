@@ -54,7 +54,8 @@
       "type": "weather_tile",
       "title": "Roof env",
       "grid": { "col": 6, "row": 7, "w": 4, "h": 1 },
-      "bind": { "source": "local", "sensor": "weather", "refreshMs": 2000 }
+      "bind": { "source": "local", "sensor": "weather", "refreshMs": 2000 },
+      "props": { "fields": ["temp", "hum", "dew", "gust"] }
     },
     {
       "id": "lightning",
@@ -116,6 +117,35 @@
       "title": "Dispatch",
       "grid": { "col": 6, "row": 10, "w": 7, "h": 1 },
       "bind": { "source": "siphon", "sourceId": "dispatch:events", "refreshMs": 5000 }
+    },
+    {
+      "id": "cabin",
+      "type": "cabin_status",
+      "title": "Cabin",
+      "grid": { "col": 1, "row": 11, "w": 3, "h": 1 },
+      "bind": { "source": "local", "sensor": "weather", "refreshMs": 5000 }
+    },
+    {
+      "id": "baro",
+      "type": "baro_tile",
+      "title": "Pressure",
+      "grid": { "col": 4, "row": 11, "w": 3, "h": 1 },
+      "bind": { "source": "local", "sensor": "weather", "refreshMs": 5000 }
+    },
+    {
+      "id": "wll-link",
+      "type": "wll_link",
+      "title": "WLL",
+      "grid": { "col": 7, "row": 11, "w": 2, "h": 1 },
+      "bind": { "source": "local", "sensor": "weather", "refreshMs": 5000 }
+    },
+    {
+      "id": "rain",
+      "type": "weather_tile",
+      "title": "Rain",
+      "grid": { "col": 9, "row": 11, "w": 4, "h": 1 },
+      "bind": { "source": "local", "sensor": "weather", "refreshMs": 5000 },
+      "props": { "fields": ["rain", "rain24h", "solar", "uv"] }
     }
   ]
 }
