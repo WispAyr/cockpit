@@ -1,0 +1,30 @@
+@import "tailwindcss";
+
+html, body { height: 100%; margin: 0; }
+body.cockpit-body {
+  background: var(--cockpit-bg, #0b0d10);
+  color: var(--cockpit-fg, #e7ecf3);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Inter", sans-serif;
+  overflow: hidden;
+  user-select: none;
+}
+
+.cockpit-grid {
+  display: grid;
+  width: 100vw;
+  height: 100vh;
+  padding: var(--gap, 12px);
+  gap: var(--gap, 12px);
+}
+
+.tile {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  padding: 10px 12px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.tile-title { font-size: 11px; opacity: .65; text-transform: uppercase; letter-spacing: .06em; }
+.tile-body { flex: 1; display: flex; align-items: center; justify-content: center; }

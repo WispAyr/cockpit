@@ -1,0 +1,41 @@
+{
+  "manifestVersion": 1,
+  "name": "Roaming",
+  "description": "Light driving/standby layout: position, weather, low power draw.",
+  "template": "roaming",
+  "theme": { "name": "calm", "accent": "#4fc3f7" },
+  "grid": { "cols": 12, "rowHeightPx": 140, "gapPx": 14 },
+  "widgets": [
+    {
+      "id": "clock",
+      "type": "clock",
+      "grid": { "col": 1, "row": 1, "w": 4, "h": 1 }
+    },
+    {
+      "id": "gps",
+      "type": "gps_position",
+      "grid": { "col": 5, "row": 1, "w": 4, "h": 1 },
+      "bind": { "source": "local", "sensor": "gps", "refreshMs": 2000 }
+    },
+    {
+      "id": "starlink",
+      "type": "starlink_status",
+      "grid": { "col": 9, "row": 1, "w": 4, "h": 1 },
+      "bind": { "source": "local", "sensor": "starlink", "refreshMs": 5000 }
+    },
+    {
+      "id": "weather",
+      "type": "weather_tile",
+      "title": "Roof env",
+      "grid": { "col": 1, "row": 2, "w": 6, "h": 2 },
+      "bind": { "source": "local", "sensor": "weather", "refreshMs": 5000 }
+    },
+    {
+      "id": "outlook",
+      "type": "stormfront_outlook",
+      "title": "Outlook",
+      "grid": { "col": 7, "row": 2, "w": 6, "h": 2 },
+      "bind": { "source": "prism", "lens": "stormfront_outlook", "refreshMs": 60000 }
+    }
+  ]
+}

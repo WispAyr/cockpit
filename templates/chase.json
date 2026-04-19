@@ -1,0 +1,73 @@
+{
+  "manifestVersion": 1,
+  "name": "Chase",
+  "description": "Storm-chasing primary layout: stormfront outlook, roof cam, GPS, radar, lightning.",
+  "template": "chase",
+  "theme": { "name": "storm", "accent": "#ffae00" },
+  "grid": { "cols": 12, "rowHeightPx": 120, "gapPx": 12 },
+  "widgets": [
+    {
+      "id": "outlook",
+      "type": "stormfront_outlook",
+      "title": "Stormfront · Outlook",
+      "grid": { "col": 1, "row": 1, "w": 6, "h": 3 },
+      "bind": { "source": "prism", "lens": "stormfront_outlook", "refreshMs": 30000 },
+      "props": {}
+    },
+    {
+      "id": "roof",
+      "type": "camera_tile",
+      "title": "Roof cam",
+      "grid": { "col": 7, "row": 1, "w": 6, "h": 3 },
+      "bind": { "source": "camera", "vehicleCameraSlug": "roof-front" },
+      "props": { "rotate": 0 }
+    },
+    {
+      "id": "gps",
+      "type": "gps_position",
+      "title": "Position",
+      "grid": { "col": 1, "row": 4, "w": 3, "h": 2 },
+      "bind": { "source": "local", "sensor": "gps", "refreshMs": 1000 }
+    },
+    {
+      "id": "weather",
+      "type": "weather_tile",
+      "title": "Roof env",
+      "grid": { "col": 4, "row": 4, "w": 3, "h": 2 },
+      "bind": { "source": "local", "sensor": "weather", "refreshMs": 2000 }
+    },
+    {
+      "id": "risk",
+      "type": "map_tile",
+      "title": "Risk surface",
+      "grid": { "col": 7, "row": 4, "w": 6, "h": 3 },
+      "bind": { "source": "prism", "lens": "stormfront_risk_surface", "refreshMs": 60000 }
+    },
+    {
+      "id": "lightning",
+      "type": "adsb_strip",
+      "title": "Lightning jumps",
+      "grid": { "col": 1, "row": 6, "w": 6, "h": 1 },
+      "bind": { "source": "prism", "lens": "stormfront_lightning_jump", "refreshMs": 10000 }
+    },
+    {
+      "id": "starlink",
+      "type": "starlink_status",
+      "title": "Starlink",
+      "grid": { "col": 1, "row": 7, "w": 4, "h": 1 },
+      "bind": { "source": "local", "sensor": "starlink", "refreshMs": 2000 }
+    },
+    {
+      "id": "clock",
+      "type": "clock",
+      "grid": { "col": 5, "row": 7, "w": 2, "h": 1 }
+    },
+    {
+      "id": "dispatch",
+      "type": "dispatch_feed",
+      "title": "Dispatch",
+      "grid": { "col": 7, "row": 7, "w": 6, "h": 1 },
+      "bind": { "source": "siphon", "sourceId": "dispatch:events", "refreshMs": 5000 }
+    }
+  ]
+}

@@ -1,0 +1,56 @@
+{
+  "manifestVersion": 1,
+  "name": "SAR",
+  "description": "Search & rescue layout: dispatched callout, map, comms, SAR status ribbon.",
+  "template": "sar",
+  "theme": { "name": "sar", "accent": "#00c853" },
+  "grid": { "cols": 12, "rowHeightPx": 120, "gapPx": 10 },
+  "widgets": [
+    {
+      "id": "status",
+      "type": "sar_status",
+      "title": "SAR status",
+      "grid": { "col": 1, "row": 1, "w": 12, "h": 1 },
+      "bind": { "source": "prism", "lens": "sar_active_callout", "refreshMs": 5000 }
+    },
+    {
+      "id": "map",
+      "type": "map_tile",
+      "title": "Search area",
+      "grid": { "col": 1, "row": 2, "w": 8, "h": 4 },
+      "bind": { "source": "prism", "lens": "sar_search_map", "refreshMs": 10000 }
+    },
+    {
+      "id": "gps",
+      "type": "gps_position",
+      "title": "Our position",
+      "grid": { "col": 9, "row": 2, "w": 4, "h": 2 },
+      "bind": { "source": "local", "sensor": "gps", "refreshMs": 500 }
+    },
+    {
+      "id": "dispatch",
+      "type": "dispatch_feed",
+      "title": "Comms",
+      "grid": { "col": 9, "row": 4, "w": 4, "h": 2 },
+      "bind": { "source": "siphon", "sourceId": "dispatch:events:sar", "refreshMs": 2000 }
+    },
+    {
+      "id": "roof",
+      "type": "camera_tile",
+      "title": "Roof cam",
+      "grid": { "col": 1, "row": 6, "w": 8, "h": 2 },
+      "bind": { "source": "camera", "vehicleCameraSlug": "roof-front" }
+    },
+    {
+      "id": "starlink",
+      "type": "starlink_status",
+      "grid": { "col": 9, "row": 6, "w": 4, "h": 1 },
+      "bind": { "source": "local", "sensor": "starlink", "refreshMs": 2000 }
+    },
+    {
+      "id": "clock",
+      "type": "clock",
+      "grid": { "col": 9, "row": 7, "w": 4, "h": 1 }
+    }
+  ]
+}

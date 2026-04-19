@@ -1,0 +1,15 @@
+{
+  "name": "cockpit",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Cockpit — dashboard designer (portal) + edge runtime (vehicle kiosk). Manifest-driven.",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:designer": "npm --workspace @cockpit/designer run dev",
+    "dev:runtime": "npm --workspace @cockpit/runtime run dev",
+    "build": "npm --workspaces --if-present run build",
+    "lint": "npm --workspaces --if-present run lint"
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "manifestVersion": 1,
+  "name": "Livestream",
+  "description": "On-air layout: roof cam full-bleed, overlay strip, Starlink health, broadcast-studio control.",
+  "template": "livestream",
+  "theme": { "name": "onair", "accent": "#ff3b30" },
+  "grid": { "cols": 12, "rowHeightPx": 120, "gapPx": 8 },
+  "widgets": [
+    {
+      "id": "mainfeed",
+      "type": "camera_tile",
+      "title": "On Air",
+      "grid": { "col": 1, "row": 1, "w": 9, "h": 5 },
+      "bind": { "source": "camera", "vehicleCameraSlug": "roof-front" },
+      "props": { "showOnAirIndicator": true }
+    },
+    {
+      "id": "livestream",
+      "type": "livestream_control",
+      "title": "Broadcast",
+      "grid": { "col": 10, "row": 1, "w": 3, "h": 2 },
+      "bind": { "source": "static", "value": { "destination": "broadcast-studio" } }
+    },
+    {
+      "id": "starlink",
+      "type": "starlink_status",
+      "title": "Starlink uplink",
+      "grid": { "col": 10, "row": 3, "w": 3, "h": 2 },
+      "bind": { "source": "local", "sensor": "starlink", "refreshMs": 1000 }
+    },
+    {
+      "id": "pos",
+      "type": "gps_position",
+      "grid": { "col": 10, "row": 5, "w": 3, "h": 1 },
+      "bind": { "source": "local", "sensor": "gps", "refreshMs": 1000 }
+    },
+    {
+      "id": "dispatch",
+      "type": "dispatch_feed",
+      "title": "Producer notes",
+      "grid": { "col": 1, "row": 6, "w": 12, "h": 1 },
+      "bind": { "source": "siphon", "sourceId": "dispatch:events:broadcast", "refreshMs": 3000 }
+    }
+  ]
+}
