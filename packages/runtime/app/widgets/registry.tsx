@@ -114,6 +114,8 @@ const CameraTile = ({ w }: { w: WidgetInstance }) => {
   const [err, setErr] = useState(false);
 
   // Lazy-load hls.js when the browser can't do native HLS (most desktops).
+  // On fatal errors (go2rtc cold-start, network blip, RTSP drop), try hls.js's
+  // built-in recovery then tear down and rebuild once before surfacing an error.
   useEffect(() => {
     const v = videoRef.current;
     const url = d?.streamUrl as string | undefined;
@@ -121,7 +123,11 @@ const CameraTile = ({ w }: { w: WidgetInstance }) => {
     setErr(false);
     let hls: any = null;
     let cancelled = false;
-    (async () => {
+    let rebuildTimer: any = null;
+    let rebuildCount = 0;
+
+    const build = async () => {
+      if (cancelled) return;
       if (v.canPlayType("application/vnd.apple.mpegurl")) {
         v.src = url;
         return;
@@ -130,21 +136,34 @@ const CameraTile = ({ w }: { w: WidgetInstance }) => {
         const mod = await import("hls.js");
         if (cancelled) return;
         const Hls = mod.default;
-        if (Hls.isSupported()) {
-          hls = new Hls({ liveDurationInfinity: true, lowLatencyMode: true });
-          hls.loadSource(url);
-          hls.attachMedia(v);
-          hls.on(Hls.Events.ERROR, (_e: any, data: any) => {
-            if (data?.fatal) setErr(true);
-          });
-        } else {
-          v.src = url;
-        }
+        if (!Hls.isSupported()) { v.src = url; return; }
+        hls = new Hls({ liveDurationInfinity: true, lowLatencyMode: true });
+        hls.loadSource(url);
+        hls.attachMedia(v);
+        hls.on(Hls.Events.ERROR, (_e: any, data: any) => {
+          if (!data?.fatal) return;
+          if (data.type === "networkError") { try { hls.startLoad(); } catch {} return; }
+          if (data.type === "mediaError") { try { hls.recoverMediaError(); } catch {} return; }
+          // other fatal — tear down and rebuild after a short delay, capped.
+          try { hls.destroy(); } catch {}
+          hls = null;
+          if (rebuildCount++ < 6) {
+            rebuildTimer = setTimeout(() => { if (!cancelled) build(); }, 2000);
+          } else {
+            setErr(true);
+          }
+        });
       } catch {
         v.src = url;
       }
-    })();
-    return () => { cancelled = true; if (hls) hls.destroy(); };
+    };
+    build();
+
+    return () => {
+      cancelled = true;
+      if (rebuildTimer) clearTimeout(rebuildTimer);
+      if (hls) hls.destroy();
+    };
   }, [d?.streamUrl]);
 
   const style: React.CSSProperties = {
@@ -442,21 +461,35 @@ function StripCell({ slug, label, rotate }: { slug: string; label: string; rotat
     const url = `/stream/${slug}.m3u8`;
     let hls: any = null;
     let cancelled = false;
-    (async () => {
+    let rebuildTimer: any = null;
+    let rebuildCount = 0;
+    const build = async () => {
+      if (cancelled) return;
       if (v.canPlayType("application/vnd.apple.mpegurl")) { v.src = url; return; }
       try {
         const mod = await import("hls.js");
         if (cancelled) return;
         const Hls = mod.default;
-        if (Hls.isSupported()) {
-          hls = new Hls({ liveDurationInfinity: true, lowLatencyMode: true });
-          hls.loadSource(url);
-          hls.attachMedia(v);
-          hls.on(Hls.Events.ERROR, (_e: any, data: any) => { if (data?.fatal) setErr(true); });
-        } else { v.src = url; }
+        if (!Hls.isSupported()) { v.src = url; return; }
+        hls = new Hls({ liveDurationInfinity: true, lowLatencyMode: true });
+        hls.loadSource(url);
+        hls.attachMedia(v);
+        hls.on(Hls.Events.ERROR, (_e: any, data: any) => {
+          if (!data?.fatal) return;
+          if (data.type === "networkError") { try { hls.startLoad(); } catch {} return; }
+          if (data.type === "mediaError") { try { hls.recoverMediaError(); } catch {} return; }
+          try { hls.destroy(); } catch {}
+          hls = null;
+          if (rebuildCount++ < 6) {
+            rebuildTimer = setTimeout(() => { if (!cancelled) build(); }, 2000);
+          } else {
+            setErr(true);
+          }
+        });
       } catch { v.src = url; }
-    })();
-    return () => { cancelled = true; if (hls) hls.destroy(); };
+    };
+    build();
+    return () => { cancelled = true; if (rebuildTimer) clearTimeout(rebuildTimer); if (hls) hls.destroy(); };
   }, [slug]);
   return (
     <div className="relative w-full h-full overflow-hidden rounded bg-black">

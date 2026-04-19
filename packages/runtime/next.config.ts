@@ -11,6 +11,10 @@ const config: NextConfig = {
       { source: "/stream/:slug.m3u8", destination: `${GO2RTC_URL}/api/stream.m3u8?src=:slug` },
       { source: "/stream/:slug.mp4", destination: `${GO2RTC_URL}/api/stream.mp4?src=:slug` },
       { source: "/stream/:slug/frame.jpg", destination: `${GO2RTC_URL}/api/frame.jpeg?src=:slug` },
+      // go2rtc's master playlist references sub-playlist + segments via the
+      // *relative* path "hls/..." — the browser resolves that against /stream/
+      // so we need a passthrough for everything under /stream/hls/.
+      { source: "/stream/hls/:path*", destination: `${GO2RTC_URL}/api/hls/:path*` },
       // go2rtc admin/info API (optional use by widgets needing a stream list)
       { source: "/go2rtc/streams", destination: `${GO2RTC_URL}/api/streams` },
     ];
