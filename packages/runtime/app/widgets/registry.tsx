@@ -10,7 +10,14 @@ function useBindingData(bind: Binding | undefined): any {
     const refreshMs = "refreshMs" in bind ? (bind.refreshMs ?? 5000) : 5000;
     async function tick() {
       const v = await resolveBinding(bind!);
-      if (alive) setData(v);
+      if (!alive) return;
+      // Never replace a known-good response with a bare error — that causes
+      // every widget to flash to "—" whenever a single poll fails.
+      setData((prev: any) => {
+        const isError = v && typeof v === "object" && "error" in v && Object.keys(v).length <= 2;
+        if (isError && prev && !("error" in prev)) return prev;
+        return v;
+      });
     }
     tick();
     const id = setInterval(tick, refreshMs);
